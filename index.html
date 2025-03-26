@@ -73,6 +73,67 @@
         font-size: 1rem;
       }
     }
+
+    /* Print styles for mobile devices */
+    @media print and (max-width: 640px) {
+      body {
+        font-size: 0.8em; /* Adjust font size for smaller screens */
+        padding: 10px;
+      }
+      table {
+        font-size: 0.7em; /* Reduce table font size */
+      }
+      th, td {
+        padding: 8px; /* Adjust padding for table cells */
+      }
+      .summary .item {
+        flex-direction: column; /* Stack summary items vertically */
+        align-items: flex-start;
+      }
+      .summary .item .amount {
+        font-size: 1em; /* Adjust amount font size */
+      }
+    }
+
+    /* Enhanced print styles for mobile devices */
+    @media print {
+      body {
+        font-size: 0.9em; /* Adjust font size for better readability */
+        margin: 0;
+        padding: 0;
+        background: white; /* Ensure white background for printing */
+        color: black; /* Ensure text is visible */
+      }
+      h1, h2, h3 {
+        font-size: 1.2em; /* Adjust heading sizes */
+        text-align: center; /* Center align headings */
+      }
+      table {
+        width: 100%; /* Ensure table fits within the page */
+        font-size: 0.8em; /* Adjust table font size */
+        border-collapse: collapse; /* Remove extra spacing */
+      }
+      th, td {
+        padding: 6px; /* Adjust padding for table cells */
+        border: 1px solid #ddd; /* Add borders for better visibility */
+      }
+      .summary .item {
+        display: block; /* Stack summary items vertically */
+        margin-bottom: 10px;
+      }
+      .summary .item .amount {
+        font-size: 1em; /* Adjust amount font size */
+        font-weight: bold;
+      }
+      .footer {
+        font-size: 0.8em; /* Adjust footer font size */
+        text-align: center;
+        margin-top: 20px;
+      }
+      .modal, .bg-gray-800, .bg-gray-600 {
+        display: none; /* Hide unnecessary elements during printing */
+      }
+    }
   </style>
 </head>
 <body class="bg-gradient-to-br from-gray-700 to-gray-900 text-gray-200 flex flex-col items-center justify-center p-4 min-h-screen">
@@ -106,7 +167,7 @@
         <label for="note" class="block text-left mb-1 text-center">Notiz:</label>
         <textarea id="note" placeholder="Beschreibung"
           class="w-full p-3 rounded-md bg-gray-700 border border-gray-600 mb-4"></textarea>
-
+ 
         <button type="button" onclick="addExpense()"
           class="w-full py-3 bg-teal-600 hover:bg-teal-700 rounded-md text-white font-bold">Ausgabe hinzufügen</button>
 
