@@ -248,79 +248,95 @@
   </div>
 
   <script>
+  function printReport() {
+    try {
+      const selected = document.getElementById("month").value;
+      if (!selected) {
+        alert("Bitte wähle einen Monat aus.");
+        return;
+      }
 
-function printReport() {
-  const selected = document.getElementById("month").value;
-  let [year, month] = selected.split("-");
-  const transaction = db.transaction(["expenses", "dauerauftraege"], "readonly");
-  const expenseStore = transaction.objectStore("expenses");
-  const dauerauftragStore = transaction.objectStore("dauerauftraege");
+      let [year, month] = selected.split("-");
+      const transaction = db.transaction(["expenses", "dauerauftraege"], "readonly");
+      const expenseStore = transaction.objectStore("expenses");
+      const dauerauftragStore = transaction.objectStore("dauerauftraege");
 
-  const expensesRequest = expenseStore.getAll();
-  const dauerauftraegeRequest = dauerauftragStore.getAll();
+      const expensesRequest = expenseStore.getAll();
+      const dauerauftraegeRequest = dauerauftragStore.getAll();
 
-  transaction.oncomplete = function () {
-    const expenses = expensesRequest.result.filter(item => item.year === year && item.month === month);
-    const currentValue = convertToNumber(year, month);
-    const dauerauftraege = dauerauftraegeRequest.result.filter(order => {
-      const startVal = convertToNumber(order.startYear, order.startMonth);
-      const endVal = convertToNumber(order.endYear, order.endMonth);
-      return currentValue >= startVal && currentValue <= endVal;
-    });
+      transaction.oncomplete = function () {
+        const expenses = expensesRequest.result.filter(item => item.year === year && item.month === month);
+        const currentValue = convertToNumber(year, month);
+        const dauerauftraege = dauerauftraegeRequest.result.filter(order => {
+          const startVal = convertToNumber(order.startYear, order.startMonth);
+          const endVal = convertToNumber(order.endYear, order.endMonth);
+          return currentValue >= startVal && currentValue <= endVal;
+        });
 
-    const allData = [
-      ...expenses.map(item => ({ type: 'Ausgabe', amount: item.amount, note: item.note, period: `${month} ${year}` })),
-      ...dauerauftraege.map(order => ({ type: 'Dauerauftrag', amount: order.amount, note: order.note, period: `${order.startMonth} ${order.startYear} - ${order.endMonth} ${order.endYear}` }))
-    ];
+        const allData = [
+          ...expenses.map(item => ({ type: 'Ausgabe', amount: item.amount, note: item.note, period: `${month} ${year}` })),
+          ...dauerauftraege.map(order => ({ type: 'Dauerauftrag', amount: order.amount, note: order.note, period: `${order.startMonth} ${order.startYear} - ${order.endMonth} ${order.endYear}` }))
+        ];
 
-    allData.sort((a, b) => a.amount - b.amount);
+        allData.sort((a, b) => a.amount - b.amount);
 
-    const income = parseFloat(document.getElementById("income").value) || 0;
-    const oneTimeTotal = expenses.reduce((sum, item) => sum + item.amount, 0);
-    const recurringTotal = dauerauftraege.reduce((sum, order) => sum + order.amount, 0);
-    const balance = income - (oneTimeTotal + recurringTotal);
+        const income = parseFloat(document.getElementById("income").value) || 0;
+        const oneTimeTotal = expenses.reduce((sum, item) => sum + item.amount, 0);
+        const recurringTotal = dauerauftraege.reduce((sum, order) => sum + order.amount, 0);
+        const balance = income - (oneTimeTotal + recurringTotal);
 
-    const printWindow = window.open('', '', 'height=800,width=600');
-    printWindow.document.write(`<html><head><title>Rechnung - ${month} ${year}</title>`);
-    printWindow.document.write('<style>');
-    printWindow.document.write('body { font-family: "Helvetica Neue", Arial, sans-serif; margin: 0; padding: 40px; background-color: #e9ecef; color: #333; line-height: 1.4; font-size: 0.9em; }');
-    printWindow.document.write('h1 { text-align: center; font-size: 2em; color: #007bff; margin-bottom: 30px; font-weight: bold; }');
-    printWindow.document.write('h2 { font-size: 1.3em; color: #343a40; margin-bottom: 15px; text-align: center; font-weight: normal; }');
-    printWindow.document.write('table { width: 100%; border-collapse: collapse; margin-bottom: 30px; background-color: #fff; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); border-radius: 8px; font-size: 0.9em; }');
-    printWindow.document.write('th, td { padding: 12px 16px; text-align: left; border-bottom: 1px solid #dee2e6; }');
-    printWindow.document.write('th { background-color: #343a40; color: white; font-weight: bold; text-transform: uppercase; }');
-    printWindow.document.write('tr:nth-child(even) { background-color: #f8f9fa; }');
-    printWindow.document.write('td { color: #495057; }');
-    printWindow.document.write('.summary { margin-top: 50px; font-size: 1em; text-align: center; font-weight: bold; color: #007bff; }');
-    printWindow.document.write('.summary .item { display: flex; justify-content: space-between; padding: 10px 18px; margin-bottom: 10px; background-color: #fff; border-radius: 8px; box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); font-size: 1em; color: #495057; }');
-    printWindow.document.write('.summary .item .amount { font-size: 1.2em; font-weight: bold; }');
-    printWindow.document.write('.summary .item .amount.positive { color: #28a745; }');
-    printWindow.document.write('.footer { text-align: center; font-size: 0.9em; color: #6c757d; margin-top: 50px; font-style: italic; }');
-    printWindow.document.write('</style>');
-    printWindow.document.write('</head><body>');
-    printWindow.document.write(`<h1>Rechnung für ${month} ${year}</h1>`);
-    printWindow.document.write('<table><thead><tr><th>Typ</th><th>Betrag</th><th>Notiz</th></tr></thead><tbody>');
-    allData.forEach(item => {
-      printWindow.document.write(`<tr><td>${item.type}</td><td>€${item.amount.toFixed(2)}</td><td>${item.note}</td></tr>`);
-    });
-    printWindow.document.write('</tbody></table>');
-    
-    // Finanzielle Zusammenfassung
-    printWindow.document.write('<div class="summary">');
-    printWindow.document.write(`<div class="item"><h2>Gehalt</h2><div class="amount">€${income.toFixed(2)}</div></div>`);
-    printWindow.document.write(`<div class="item"><h2>Gesamtausgaben </h2><div class="amount">€${(recurringTotal + oneTimeTotal).toFixed(2)}</div></div>`);
-    printWindow.document.write(`<div class="item"><h2>Verbleibender Betrag</h2><div class="amount positive">€${balance.toFixed(2)}</div></div>`);
-    printWindow.document.write('</div>');
-    
-    printWindow.document.write(`<div class="footer">${new Date().toLocaleDateString("de-DE")}</div>`);
-    printWindow.document.write('</body></html>');
-    printWindow.document.close();
-    printWindow.print();
-  };
-}
+        const printWindow = window.open('', '', 'height=800,width=600');
+        if (!printWindow) {
+          alert("Pop-ups sind blockiert. Bitte erlaube Pop-ups für diese Seite.");
+          return;
+        }
 
+        printWindow.document.write(`<html><head><title>Rechnung - ${month} ${year}</title>`);
+        printWindow.document.write('<style>');
+        printWindow.document.write('body { font-family: "Helvetica Neue", Arial, sans-serif; margin: 0; padding: 40px; background-color: #e9ecef; color: #333; line-height: 1.4; font-size: 0.9em; }');
+        printWindow.document.write('h1 { text-align: center; font-size: 2em; color: #007bff; margin-bottom: 30px; font-weight: bold; }');
+        printWindow.document.write('h2 { font-size: 1.3em; color: #343a40; margin-bottom: 15px; text-align: center; font-weight: normal; }');
+        printWindow.document.write('table { width: 100%; border-collapse: collapse; margin-bottom: 30px; background-color: #fff; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); border-radius: 8px; font-size: 0.9em; }');
+        printWindow.document.write('th, td { padding: 12px 16px; text-align: left; border-bottom: 1px solid #dee2e6; }');
+        printWindow.document.write('th { background-color: #343a40; color: white; font-weight: bold; text-transform: uppercase; }');
+        printWindow.document.write('tr:nth-child(even) { background-color: #f8f9fa; }');
+        printWindow.document.write('td { color: #495057; }');
+        printWindow.document.write('.summary { margin-top: 50px; font-size: 1em; text-align: center; font-weight: bold; color: #007bff; }');
+        printWindow.document.write('.summary .item { display: flex; justify-content: space-between; padding: 10px 18px; margin-bottom: 10px; background-color: #fff; border-radius: 8px; box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); font-size: 1em; color: #495057; }');
+        printWindow.document.write('.summary .item .amount { font-size: 1.2em; font-weight: bold; }');
+        printWindow.document.write('.summary .item .amount.positive { color: #28a745; }');
+        printWindow.document.write('.footer { text-align: center; font-size: 0.9em; color: #6c757d; margin-top: 50px; font-style: italic; }');
+        printWindow.document.write('</style>');
+        printWindow.document.write('</head><body>');
+        printWindow.document.write(`<h1>Rechnung für ${month} ${year}</h1>`);
+        printWindow.document.write('<table><thead><tr><th>Typ</th><th>Betrag</th><th>Notiz</th></tr></thead><tbody>');
+        allData.forEach(item => {
+          printWindow.document.write(`<tr><td>${item.type}</td><td>€${item.amount.toFixed(2)}</td><td>${item.note}</td></tr>`);
+        });
+        printWindow.document.write('</tbody></table>');
 
+        // Finanzielle Zusammenfassung
+        printWindow.document.write('<div class="summary">');
+        printWindow.document.write(`<div class="item"><h2>Gehalt</h2><div class="amount">€${income.toFixed(2)}</div></div>`);
+        printWindow.document.write(`<div class="item"><h2>Gesamtausgaben </h2><div class="amount">€${(recurringTotal + oneTimeTotal).toFixed(2)}</div></div>`);
+        printWindow.document.write(`<div class="item"><h2>Verbleibender Betrag</h2><div class="amount positive">€${balance.toFixed(2)}</div></div>`);
+        printWindow.document.write('</div>');
 
+        printWindow.document.write(`<div class="footer">${new Date().toLocaleDateString("de-DE")}</div>`);
+        printWindow.document.write('</body></html>');
+        printWindow.document.close();
+        printWindow.print();
+      };
+
+      transaction.onerror = function (event) {
+        console.error("Fehler beim Abrufen der Daten:", event.target.errorCode);
+        alert("Fehler beim Abrufen der Daten. Bitte versuche es erneut.");
+      };
+    } catch (error) {
+      console.error("Fehler in der Funktion printReport:", error);
+      alert("Ein Fehler ist aufgetreten. Bitte versuche es erneut.");
+    }
+  }
 
      // Array der Monatsnamen (Januar bis Dezember)
      const sortedMonths = ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"];
